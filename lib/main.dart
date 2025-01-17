@@ -4,7 +4,6 @@ void main() {
   runApp(MyApp());
 }
 
-// MyApp에서 MaterialApp을 최상위 위젯으로 설정
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -12,33 +11,41 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: mainPage(), // HomePage를 기본 페이지로 설정
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: MainPage(),
     );
   }
 }
 
-class mainPage extends StatelessWidget {
+class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          actions: [
-            TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LoginPage(),
-                    ),
-                  );
-                },
-                child: Text("Login"))
-          ],
-        ),
-        body: Center(
-          child: Text('mainPage'),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('NeoDo'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LoginPage(),
+                ),
+              );
+            },
+            child: Text(
+              "Login",
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+        ],
+      ),
+      body: Center(
+        child: Text(
+          'Welcome to the Main Page',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -59,42 +66,55 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("로그인")),
+      appBar: AppBar(title: Text("Login")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            /// 현재 유저 로그인 상태
             Center(
               child: Text(
-                "로그인해 주세요 🙂",
+                "NeoDo",
                 style: TextStyle(
                   fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
             SizedBox(height: 32),
 
-            /// 이메일
+            // Email Field
             TextField(
               controller: emailController,
-              decoration: InputDecoration(hintText: "이메일"),
+              decoration: InputDecoration(
+                labelText: "Email",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email),
+              ),
             ),
 
-            /// 비밀번호
+            SizedBox(height: 16),
+
+            // Password Field
             TextField(
               controller: passwordController,
-              obscureText: false, // 비밀번호 안보이게
-              decoration: InputDecoration(hintText: "비밀번호"),
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: "Password",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
+              ),
             ),
+
             SizedBox(height: 32),
 
-            /// 로그인 버튼
+            // Login Button
             ElevatedButton(
-              child: Text("로그인", style: TextStyle(fontSize: 21)),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text("Log In", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                // 로그인 성공시 HomePage로 이동
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (_) => HomePage()),
@@ -102,12 +122,16 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
 
-            /// 회원가입 버튼
+            SizedBox(height: 16),
+
+            // Sign Up Button
             ElevatedButton(
-              child: Text("회원가입", style: TextStyle(fontSize: 21)),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text("Sign Up", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                // 회원가입
-                print("sign up");
+                print("Sign up pressed");
               },
             ),
           ],
@@ -121,18 +145,40 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 배경색을 흰색으로 설정
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('기본 흰 바탕 페이지'),
-        backgroundColor: Colors.blue, // AppBar 배경색 설정
+        title: Text('NeoDo'),
       ),
-      body: Center(
-        child: Text(
-          '여기는 기본 흰 바탕 페이지입니다.',
-          style: TextStyle(fontSize: 24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 15),
+              ),
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (BuildContext_) => Recording()),
+                );
+              },
+              child: Text(
+                "발표 녹음하기",
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class Recording extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
   }
 }
