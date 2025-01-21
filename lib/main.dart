@@ -148,34 +148,116 @@ class HomePage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('NeoDo'),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
+            },
+            icon: Icon(Icons.logout),
+          )
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 15),
-              ),
-              onPressed: () {
-                Navigator.pushReplacement(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildButtonWithLabel(
                   context,
-                  MaterialPageRoute(builder: (BuildContext_) => Recording()),
-                );
-              },
-              child: Text(
-                "발표 녹음하기",
-                style: TextStyle(fontSize: 18),
-              ),
+                  icon: Icons.person,
+                  label: "피드백",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FeedbackPage(),
+                      ),
+                    );
+                  },
+                ),
+                _buildButtonWithLabel(
+                  context,
+                  icon: Icons.assignment,
+                  label: "코칭 플랜",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CoachingPlanPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildButtonWithLabel(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onPressed}) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size(150, 100),
+            backgroundColor: Colors.purple,
+            foregroundColor: Colors.amber,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: onPressed,
+          child: Icon(
+            icon,
+            size: 64,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 8), // 버튼과 텍스트 간 간격
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class Recording extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
+  }
+}
+
+class FeedbackPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
+  }
+}
+
+class CoachingPlanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
