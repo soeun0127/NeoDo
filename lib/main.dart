@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'dart:io';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(MyApp());
@@ -48,7 +50,7 @@ class MainPage extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          'Welcome to the Main Page',
+          '너의 스피치를 도와줄게',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
@@ -204,15 +206,55 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            SizedBox(height: 64),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildButtonWithLabel(
                   context,
+                  icon: Icons.person,
+                  label: "피드백",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FeedbackPage(),
+                      ),
+                    );
+                  },
+                ),
+                _buildButtonWithLabel(
+                  context,
+                  icon: Icons.assignment,
+                  label: "코칭 플랜",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CoachingPlanPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 64),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildButtonWithLabel(
+                  context,
+                  icon: Icons.upload,
+                  label: "업로드",
+                  onPressed: () {
+                    pickAndUploadAudio();
+                  },
+                ),
+                _buildButtonWithLabel(
+                  context,
                   icon: Icons.mic,
                   label: "녹음",
                   onPressed: () {
-                    // 녹음 페이지로 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -220,12 +262,6 @@ class HomePage extends StatelessWidget {
                       ),
                     );
                   },
-                ),
-                _buildButtonWithLabel(
-                  context,
-                  icon: Icons.upload,
-                  label: "음성 업로드",
-                  onPressed: pickAndUploadAudio, // 음성 파일 선택 및 업로드
                 ),
               ],
             ),
@@ -254,7 +290,7 @@ class HomePage extends StatelessWidget {
           onPressed: onPressed,
           child: Icon(
             icon,
-            size: 64,
+            size: 80,
             color: Colors.white,
           ),
         ),
@@ -272,26 +308,201 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class RecordingPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
-}
-
 class FeedbackPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("피드백"),
+      ),
+      body: Center(
+        child: Text("피드백 페이지 내용"),
+      ),
+    );
   }
 }
 
 class CoachingPlanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("코칭 플랜"),
+      ),
+      body: Center(
+        child: Text("코칭 플랜 페이지 내용"),
+      ),
+    );
+  }
+}
+
+//녹음 기능 구현, 녹음 페이지
+class RecordingPage extends StatefulWidget {
+  @override
+  _RecordingPageState createState() => _RecordingPageState();
+}
+
+class _RecordingPageState extends State<RecordingPage> {
+  FlutterSoundRecorder? _recorder;
+  bool _isRecording = false;
+  Duration _recordedDuration = Duration.zero;
+  late final String _filePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _initRecorder();
+  }
+
+  Future<void> _initRecorder() async {
+    _recorder = FlutterSoundRecorder();
+
+    // Request microphone permission
+    var status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Microphone permission is required')),
+      );
+      Navigator.pop(
+          context); // Return to the previous page if permission is denied
+      return;
+    }
+
+    await _recorder!.openRecorder();
+    _filePath = 'audio_${DateTime.now().millisecondsSinceEpoch}.aac';
+    _startRecording();
+  }
+
+  Future<void> _startRecording() async {
+    setState(() {
+      _isRecording = true;
+      _recordedDuration = Duration.zero;
+    });
+
+    await _recorder?.startRecorder(
+      toFile: _filePath,
+      codec: Codec.aacADTS,
+    );
+
+    // Start the timer to update recording duration
+    _updateDuration();
+  }
+
+  Future<void> _pauseRecording() async {
+    if (_recorder!.isRecording) {
+      await _recorder!.pauseRecorder();
+      setState(() {
+        _isRecording = false;
+      });
+    } else if (_recorder!.isPaused) {
+      await _recorder!.resumeRecorder();
+      setState(() {
+        _isRecording = true;
+      });
+      _updateDuration();
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    await _recorder?.stopRecorder();
+    setState(() {
+      _isRecording = false;
+    });
+  }
+
+  void _updateDuration() {
+    Future.delayed(Duration(seconds: 1), () {
+      if (_isRecording) {
+        setState(() {
+          _recordedDuration += Duration(seconds: 1);
+        });
+        _updateDuration(); // Continue updating
+      }
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
+  }
+
+  @override
+  void dispose() {
+    _recorder?.closeRecorder();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('녹음'),
+        centerTitle: true,
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Timer at the top
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              _formatDuration(_recordedDuration),
+              style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+            ),
+          ),
+          // Buttons at the bottom
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 100.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Cancel Button
+                ElevatedButton(
+                  onPressed: () {
+                    _stopRecording();
+                    Navigator.pop(context); // Go back to HomePage
+                  },
+                  child: Text('취소'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                ),
+                // Recording Button
+                GestureDetector(
+                  onTap: _pauseRecording,
+                  child: CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.red,
+                    child: Icon(
+                      _isRecording ? Icons.pause : Icons.mic,
+                      color: Colors.white,
+                      size: 36,
+                    ),
+                  ),
+                ),
+                // Done Button
+                ElevatedButton(
+                  onPressed: () async {
+                    await _stopRecording();
+                    // Do something with the recorded file (_filePath)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Recording saved to $_filePath')),
+                    );
+                    Navigator.pop(context); // Go back to HomePage
+                  },
+                  child: Text('완료'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
