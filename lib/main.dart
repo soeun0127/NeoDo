@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'dart:io';
 
 void main() {
   runApp(MyApp());
@@ -142,6 +146,39 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class HomePage extends StatelessWidget {
+  Future<void> uploadAudioFile(File audioFile) async {
+    final uri = Uri.parse('http://your-server-url/upload'); // 서버 URL로 변경
+
+    var request = http.MultipartRequest('POST', uri);
+
+    var file = await http.MultipartFile.fromPath('file', audioFile.path,
+        contentType: MediaType('audio', 'mpeg') // 파일 형식에 맞게 설정
+        );
+    request.files.add(file);
+
+    // 서버로 파일 전송
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      print('파일 업로드 성공');
+    } else {
+      print('파일 업로드 실패');
+    }
+  }
+
+  Future<void> pickAndUploadAudio() async {
+    // 음성 파일 선택
+    FilePickerResult? result =
+        await FilePicker.platform.pickFiles(type: FileType.audio);
+    if (result != null) {
+      File file = File(result.files.single.path!);
+      print('선택된 파일 경로: ${file.path}'); // 디버깅용 로그
+      await uploadAudioFile(file); // 선택한 파일 업로드
+    } else {
+      print("파일 선택이 취소되었습니다.");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -172,29 +209,23 @@ class HomePage extends StatelessWidget {
               children: [
                 _buildButtonWithLabel(
                   context,
-                  icon: Icons.person,
-                  label: "피드백",
+                  icon: Icons.mic,
+                  label: "녹음",
                   onPressed: () {
+                    // 녹음 페이지로 이동
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => FeedbackPage(),
+                        builder: (_) => RecordingPage(),
                       ),
                     );
                   },
                 ),
                 _buildButtonWithLabel(
                   context,
-                  icon: Icons.assignment,
-                  label: "코칭 플랜",
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CoachingPlanPage(),
-                      ),
-                    );
-                  },
+                  icon: Icons.upload,
+                  label: "음성 업로드",
+                  onPressed: pickAndUploadAudio, // 음성 파일 선택 및 업로드
                 ),
               ],
             ),
@@ -241,7 +272,7 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class Recording extends StatelessWidget {
+class RecordingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
