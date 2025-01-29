@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'sign_up.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -25,7 +27,18 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
+  @override
+  State<MainPage> createState() => _MainPage();
+}
+
+class _MainPage extends State<MainPage> {
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  //Service service = Service();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,10 +134,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Text("Log In", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => HomePage()),
-                );
+                SignUp().login(context);
               },
             ),
 
@@ -137,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Text("Sign Up", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                print("Sign up pressed");
+                SignUp().signUp(context);
               },
             ),
           ],
