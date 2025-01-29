@@ -134,7 +134,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Text("Log In", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                SignUp().login(context);
+                //SignUp().login(context); 원래 코드
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (builder) => HomePage()));
               },
             ),
 
@@ -367,14 +369,13 @@ class _RecordingPageState extends State<RecordingPage> {
   Future<void> _initRecorder() async {
     _recorder = FlutterSoundRecorder();
 
-    // Request microphone permission
+    //마이크 권한 요청
     var status = await Permission.microphone.request();
     if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Microphone permission is required')),
+        SnackBar(content: Text('마이크 권한이 필요합니다.')),
       );
-      Navigator.pop(
-          context); // Return to the previous page if permission is denied
+      Navigator.pop(context);
       return;
     }
 
