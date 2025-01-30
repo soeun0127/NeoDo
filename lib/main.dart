@@ -5,8 +5,10 @@ import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'package:path_provider/path_provider.dart';
 import 'sign_up.dart';
+import 'package:path/path.dart' as p;
+import 'package:audioplayers/audioplayers.dart';
 
 void main() {
   runApp(MyApp());
@@ -358,7 +360,7 @@ class _RecordingPageState extends State<RecordingPage> {
   FlutterSoundRecorder? _recorder;
   bool _isRecording = false;
   Duration _recordedDuration = Duration.zero;
-  late final String _filePath;
+  late String _filePath;
 
   @override
   void initState() {
@@ -369,7 +371,7 @@ class _RecordingPageState extends State<RecordingPage> {
   Future<void> _initRecorder() async {
     _recorder = FlutterSoundRecorder();
 
-    //마이크 권한 요청
+    // 마이크 권한 요청
     var status = await Permission.microphone.request();
     if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -384,18 +386,24 @@ class _RecordingPageState extends State<RecordingPage> {
     _startRecording();
   }
 
+  @override
+  void dispose() {
+    _recorder?.closeRecorder();
+    super.dispose();
+  }
+
   Future<void> _startRecording() async {
     setState(() {
       _isRecording = true;
       _recordedDuration = Duration.zero;
     });
 
-    await _recorder?.startRecorder(
+    await _recorder!.startRecorder(
       toFile: _filePath,
       codec: Codec.aacADTS,
     );
 
-    // Start the timer to update recording duration
+    // 녹음 시간 갱신
     _updateDuration();
   }
 
@@ -415,19 +423,55 @@ class _RecordingPageState extends State<RecordingPage> {
   }
 
   Future<void> _stopRecording() async {
-    await _recorder?.stopRecorder();
+    if (_recorder != null) {
+      await _recorder!.stopRecorder();
+    }
+
+    // 녹음 완료 후 경로 받아오기
+    final path = await _recorder!.stopRecorder();
     setState(() {
       _isRecording = false;
     });
+
+    if (path != null) {
+      // 파일 로컬 저장
+      String savedFilePath = await saveRecordingLocally(path);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('녹음 저장 완료: $savedFilePath')),
+      );
+      // 다이얼로그 표시
+      _showCompletionDialog(savedFilePath);
+    }
+  }
+
+  Future<String> saveRecordingLocally(String path) async {
+    try {
+      final audioFile = File(path);
+      if (!audioFile.existsSync()) return '';
+
+      final directory = await getApplicationDocumentsDirectory();
+      final newDir = Directory(p.join(directory.path, 'recordings'));
+      if (!await newDir.exists()) {
+        await newDir.create(recursive: true); // recordings 디렉터리 생성
+      }
+
+      final newFile = File(p.join(newDir.path, 'audio.mp3')); // 'audio.mp3'로 저장
+      await audioFile.copy(newFile.path); // 기존 파일을 새로운 위치로 복사
+      return newFile.path; // 새로운 경로 반환
+    } catch (e) {
+      print('Error saving recording: $e');
+      return ''; // 오류 발생 시 빈 문자열 반환
+    }
   }
 
   void _updateDuration() {
+    // Timer를 사용하여 녹음 시간을 갱신
     Future.delayed(Duration(seconds: 1), () {
       if (_isRecording) {
         setState(() {
           _recordedDuration += Duration(seconds: 1);
         });
-        _updateDuration(); // Continue updating
+        _updateDuration(); // 계속해서 갱신
       }
     });
   }
@@ -439,10 +483,52 @@ class _RecordingPageState extends State<RecordingPage> {
     return '$minutes:$seconds';
   }
 
-  @override
-  void dispose() {
-    _recorder?.closeRecorder();
-    super.dispose();
+  // 완료 후 선택지 다이얼로그 표시
+  void _showCompletionDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('발표 종류'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                // 첫 번째 선택지: 녹음 다시 하기
+                Navigator.pop(context);
+                _startRecording();
+              },
+              child: Text('일반 발표표'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 두 번째 선택지: 저장된 파일 확인
+                Navigator.pop(context);
+                print('저장된 파일 경로: $filePath');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('저장된 파일 경로: $filePath')),
+                );
+              },
+              child: Text('공모전 및 프로젝트트'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 세 번째 선택지: 다른 작업
+                Navigator.pop(context);
+                print('다른 작업 선택됨');
+              },
+              child: Text('비지니스스'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 네 번째 선택지: 취소
+                Navigator.pop(context);
+              },
+              child: Text('강연'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -455,7 +541,7 @@ class _RecordingPageState extends State<RecordingPage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Timer at the top
+          // 타이머 표시
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
@@ -463,25 +549,25 @@ class _RecordingPageState extends State<RecordingPage> {
               style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
             ),
           ),
-          // Buttons at the bottom
+          // 버튼들
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 100.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Cancel Button
+                // 취소 버튼
                 ElevatedButton(
                   onPressed: () {
                     _stopRecording();
-                    Navigator.pop(context); // Go back to HomePage
+                    Navigator.pop(context); // 홈으로 돌아가기
                   },
                   child: Text('취소'),
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   ),
                 ),
-                // Recording Button
+                // 녹음 버튼
                 GestureDetector(
                   onTap: _pauseRecording,
                   child: CircleAvatar(
@@ -494,15 +580,10 @@ class _RecordingPageState extends State<RecordingPage> {
                     ),
                   ),
                 ),
-                // Done Button
+                // 완료 버튼
                 ElevatedButton(
                   onPressed: () async {
                     await _stopRecording();
-                    // Do something with the recorded file (_filePath)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Recording saved to $_filePath')),
-                    );
-                    Navigator.pop(context); // Go back to HomePage
                   },
                   child: Text('완료'),
                   style: ElevatedButton.styleFrom(

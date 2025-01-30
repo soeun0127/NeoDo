@@ -12,7 +12,7 @@ class SignUp extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse("http://주소"), //signup주소 넣기
+        Uri.parse("http://api/users/signup"), //signup주소 넣기
         body: jsonEncode({
           'email': email,
           'password': password,
@@ -49,7 +49,7 @@ class SignUp extends ChangeNotifier {
 
   Future<void> login(context) async {
     final response = await http.post(
-      Uri.parse('http://주소'), //로그인 주소
+      Uri.parse('http://api/users/login'), //로그인 주소
       body: {
         'email': emailController.text,
         'password': passwordController.text
