@@ -1,0 +1,2 @@
+C:/Users/leeso/project/neodo/android/app/.cxx/Debug/1j5u6w66/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/leeso/project/neodo/android/app/.cxx/Debug/1j5u6w66/armeabi-v7a/CMakeFiles/rebuild_cache.dir
