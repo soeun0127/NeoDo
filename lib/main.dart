@@ -21,12 +21,15 @@ import 'apiService.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => GlobalState(), //AudioProvider()
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AudioProvider()), // AudioProvider 추가
+      ],
       child: MyApp(),
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -150,11 +153,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: Text("Log In", style: TextStyle(fontSize: 18)),
               onPressed: () {
-                //login(context);
-                Navigator.push(
+                login(context);
+                /*Navigator.push(
                   context,
                   MaterialPageRoute(builder: (builder) => HomePage()),
-                );
+                );*/
               },
             ),
 
@@ -188,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://c42b-1-230-133-117.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
+            'https://ed8b-203-232-234-11.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -199,7 +202,8 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         String? accessToken = response.headers['accessToken'];
         if (accessToken != null) {
-          print(accessToken);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('accessToken', accessToken);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => HomePage()),
@@ -323,7 +327,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            "https://c42b-1-230-133-117.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
+            "https://ed8b-203-232-234-11.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(
             {'username': username, 'email': email, 'password': password}),
@@ -332,7 +336,7 @@ class _SignUpPageState extends State<SignUpPage> {
       if (response.statusCode == 201) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => LoginPage()),
         );
       } else {
         _showErrorDialog(context, '회원가입 실패: ${response.body}');
@@ -346,7 +350,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://c42b-1-230-133-117.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
+            'https://ed8b-203-232-234-11.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -414,7 +418,7 @@ class _HomePageState extends State<HomePage> {
   // 🔹 파일 업로드 함수 (서버와 동기화)
   Future<void> uploadAudioFile(File audioFile) async {
     final uri = Uri.parse(
-        'https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards/record');
+        'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/record');
 
     var request = http.MultipartRequest('POST', uri);
 
@@ -425,7 +429,7 @@ class _HomePageState extends State<HomePage> {
     // 헤더에 accessToken 추가
     if (accessToken != null) {
       request.headers['Authorization'] =
-          'Bearer $accessToken'; // 'Bearer '를 추가해야 할 수도 있습니다.
+          'Bearer $accessToken';
     } else {
       print("토큰에 아무것도 안 담김");
     }
@@ -977,7 +981,7 @@ class AudioProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> fetchAudioFiles() async {
-    final url = 'https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards';
+    final url = 'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards';
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('accessToken'); // accessToken 가져오기
@@ -1095,7 +1099,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       String? accessToken = prefs.getString('accessToken'); // accessToken 가져오기
       final response = await http.get(
         Uri.parse(
-            "https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
+            "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
         headers: {
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
         },
@@ -1126,7 +1130,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     try {
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
-        Uri.parse("https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/record"), // 실제 record 데이터를 받아오는 URL로 변경
+        Uri.parse("https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/$speechBoardId/record"), // 실제 record 데이터를 받아오는 URL로 변경
       );
 
       if (response.statusCode == 200) {
@@ -1314,7 +1318,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
   Future<void> fetchAudioUrls() async {
     try {
       final response = await http.get(Uri.parse(
-          "https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards"));
+          "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards"));
       if (response.statusCode == 200) {
         setState(() {
           audioUrls = List<String>.from(json.decode(response.body));
@@ -1435,7 +1439,7 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
 
   Future<void> fetchTopics() async {
     final response = await http.get(Uri.parse(
-        'https://c42b-1-230-133-117.ngrok-free.app/api/speech-coachings'));
+        'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings'));
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       setState(() {
@@ -2031,7 +2035,7 @@ class _minRecordingPageState extends State<minRecordingPage> {
         return;
       }
 
-      final url = Uri.parse('https://c42b-1-230-133-117.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
+      final url = Uri.parse('https://ed8b-203-232-234-11.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
 
       var request = http.MultipartRequest('POST', url)
         ..headers['Authorization'] = 'Bearer $accessToken'
@@ -2314,7 +2318,7 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
       String? accessToken = prefs.getString('accessToken'); // accessToken 가져오기
       final response = await http.get(
         Uri.parse(
-            "https://c42b-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
+            "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
         headers: {
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
         },
@@ -2344,7 +2348,7 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
     try {
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
-        Uri.parse("https://c42b-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"), // 실제 record 데이터를 받아오는 URL로 변경
+        Uri.parse("https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"), // 실제 record 데이터를 받아오는 URL로 변경
       );
 
       if (response.statusCode == 200) {
@@ -2493,7 +2497,7 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
 Future<void> sendPresentationData(String atmosphere, String purpose,
     String scale, String audience, int deadline) async {
   var uri = Uri.parse(
-      "https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards/record"); // JSON 데이터 전송 URL
+      "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/record"); // JSON 데이터 전송 URL
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String? accessToken = prefs.getString('accessToken');
 
@@ -2524,7 +2528,7 @@ Future<void> sendPresentationData(String atmosphere, String purpose,
 //백엔드에서 파일 목록 가져오기
 /*Future<List<AudioFile>> fetchAudioFiles() async {
   final response = await http.get(
-      Uri.parse('https://c42b-1-230-133-117.ngrok-free.app/api/speech-boards'));
+      Uri.parse('https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards'));
   if (response.statusCode == 200) {
     List<dynamic> data = json.decode(response.body);
     return data.map((item) => AudioFile.fromJson(item)).toList();
