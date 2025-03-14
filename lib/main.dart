@@ -8,7 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:audioplayers/audioplayers.dart';
-//import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'dart:convert';
 //import 'audio_provider.dart';
 import 'package:provider/provider.dart';
@@ -191,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://ed8b-203-232-234-11.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
+            'https://76db-1-230-133-117.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -200,11 +200,17 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.statusCode == 200) {
-        String? accessToken = response.headers['accessToken'];
+        print("로그인 성공함티비, 이메일 : ${emailController.text}, ${passwordController.text}");
+        String? accessToken = response.headers['authorization'] ?? response.headers['Authorization'];
+        //accessToken 대신 사용
+        if (accessToken != null && accessToken.startsWith('Bearer ')) {
+          accessToken = accessToken.substring(7); // 'Bearer ' 제거
+        }
         if (accessToken != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('accessToken', accessToken);
-          Navigator.push(
+          print("로그인 토큰 넣기 성공ㅎㅎ, $accessToken");
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => HomePage()),
           );
@@ -327,7 +333,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            "https://ed8b-203-232-234-11.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
+            "https://76db-1-230-133-117.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(
             {'username': username, 'email': email, 'password': password}),
@@ -350,7 +356,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://ed8b-203-232-234-11.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
+            'https://76db-1-230-133-117.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -416,20 +422,19 @@ class _HomePageState extends State<HomePage> {
       GlobalKey<ScaffoldState>(); // GlobalKey 추가
   User? user;
   // 🔹 파일 업로드 함수 (서버와 동기화)
-  Future<void> uploadAudioFile(File audioFile) async {
+  /*Future<void> uploadAudioFile(File audioFile) async {
     final uri = Uri.parse(
         'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/record');
 
     var request = http.MultipartRequest('POST', uri);
 
     // SharedPreferences에서 accessToken 가져오기
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? accessToken = prefs.getString('accessToken');
+    final token = await getAccessToken();
 
     // 헤더에 accessToken 추가
-    if (accessToken != null) {
+    if (token != null) {
       request.headers['Authorization'] =
-          'Bearer $accessToken';
+          'Bearer $token';
     } else {
       print("토큰에 아무것도 안 담김");
     }
@@ -468,18 +473,68 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print('업로드 중 오류 발생: $e');
     }
+  }*/
+  postFile(File file, String atmosphere, String purpose, String scale, String audience, int deadline, String title) async {
+    final uri = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/record';
+
+    // SharedPreferences에서 accessToken 가져오기
+    final token = await getAccessToken();
+
+    var dio = Dio();
+
+    // Authorization 헤더 추가
+    if (token != null) {
+      dio.options.headers['Authorization'] = 'Bearer $token';
+      print("토큰 전송 완료 $token");
+    } else {
+      print("토큰에 아무것도 안 담김");
+    }
+
+    // JSON 데이터 생성
+    Map<String, dynamic> metadata = {
+      "atmosphere": atmosphere,
+      "purpose": purpose,
+      "scale": scale,
+      "audience": audience,
+      "deadline": deadline
+    };
+
+    try {
+      // FormData 구성 (파일 + JSON)
+      FormData formData = FormData.fromMap({
+        "record": await MultipartFile.fromFile(
+          file.path,
+          filename: title,
+        ),
+        "request": MultipartFile.fromString(
+          jsonEncode(metadata),
+          contentType: MediaType.parse('application/json'), // JSON 타입 명시
+        ),
+      });
+
+      var response = await dio.post(
+        uri,
+        data: formData,
+      );
+
+      print("업로드 응답: ${response.data}");
+    } catch (eee) {
+      print("파일 업로드에서 에러: $eee");
+    }
   }
+
 
   // 🔹 파일 선택 및 업로드 실행 함수
   Future<void> pickAndUploadAudio(BuildContext context) async {
+
     FilePickerResult? result =
         await FilePicker.platform.pickFiles(type: FileType.audio);
 
     if (result != null) {
       File file = File(result.files.single.path!);
       print('📂 선택된 파일 경로: ${file.path}');
+      _showCompletionDialog(file);
 
-      await uploadAudioFile(file); // 파일 서버에 업로드
     } else {
       print("파일 선택이 취소되었습니다.");
     }
@@ -488,13 +543,13 @@ class _HomePageState extends State<HomePage> {
   Map<String, String> koreanToEnglish = {
     "공식적": "FORMAL",
     "비공식적": "INFORMAL",
-    "정보전달": "INFORMATIVE",
+    "정보 전달": "INFORMATIVE",
     "보고": "REPORTING",
     "설득": "PERSUASIVE",
     "토론": "DEBATE",
-    "소규모(~10명)": "SMALL",
-    "중규모(~50명)": "MEDIUM",
-    "대규모(50명~)": "LARGE",
+    "소규모 (~10명)": "SMALL",
+    "중규모 (~50명)": "MEDIUM",
+    "대규모 (50명 이상)": "LARGE",
     "일반 대중": "GENERAL",
     "관련 지식 보유자": "KNOWLEDGEABLE",
     "전문가": "EXPERT",
@@ -508,7 +563,7 @@ class _HomePageState extends State<HomePage> {
       TextEditingController(); // 제한 시간 입력
   TextEditingController _titleController = TextEditingController();
 
-  void _showCompletionDialog(String filePath) {
+  void _showCompletionDialog(File file) {
     if (context.mounted) {
       showDialog(
         context: context,
@@ -569,20 +624,20 @@ class _HomePageState extends State<HomePage> {
             actions: <Widget>[
               TextButton(
                 onPressed: () async {
-                  if (_selectedAtmosphere.isNotEmpty &&
-                      _selectedPurpose.isNotEmpty &&
-                      _selectedScale.isNotEmpty &&
-                      _selectedAudience.isNotEmpty) {
-                    String atmosphereEng = koreanToEnglish[_selectedAtmosphere] ??
-                        _selectedAtmosphere;
-                    String purposeEng =
-                        koreanToEnglish[_selectedPurpose] ?? _selectedPurpose;
-                    String scaleEng =
-                        koreanToEnglish[_selectedScale] ?? _selectedScale;
-                    String audienceEng =
-                        koreanToEnglish[_selectedAudience] ?? _selectedAudience;
-                    // uploadAudioFile 호출 시 jwtToken 전달
-                    await sendPresentationData(
+            if (_selectedAtmosphere.isNotEmpty &&
+                _selectedPurpose.isNotEmpty &&
+                _selectedScale.isNotEmpty &&
+                _selectedAudience.isNotEmpty) {
+              String atmosphereEng = koreanToEnglish[_selectedAtmosphere] ??
+                  _selectedAtmosphere;
+              String purposeEng =
+                  koreanToEnglish[_selectedPurpose] ?? _selectedPurpose;
+              String scaleEng =
+                  koreanToEnglish[_selectedScale] ?? _selectedScale;
+              String audienceEng =
+                  koreanToEnglish[_selectedAudience] ?? _selectedAudience;
+              // uploadAudioFile 호출 시 jwtToken 전달
+              /* await uploadDataWithFileAndMeta(
                       atmosphereEng,
                       purposeEng,
                       scaleEng,
@@ -591,15 +646,32 @@ class _HomePageState extends State<HomePage> {
                           ? int.parse(
                           _timeLimitController.text) // 🔹 String -> int 변환
                           : 0,
-                    );
-                    setState(() => _completeRecording(filePath));
-                    Navigator.pop(context);
-                  } else {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                        SnackBar(content: Text('모든 항목을 선택해주세요.')));
-                  }
-                },
+                      _titleController,
+                    );*/
+              if (mounted) {
+                    await postFile(
+                        file,
+                        atmosphereEng,
+                        purposeEng,
+                        scaleEng,
+                        audienceEng,
+                        _timeLimitController.text.isNotEmpty
+                            ? int.parse(
+                            _timeLimitController.text) // 🔹 String -> int 변환
+                            : 0,
+                        _titleController.text);
+                    setState(() {
+                      // 상태 업데이트 작업
+                    });
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(
+                    SnackBar(content: Text('모든 항목을 선택해주세요.')));
+              }
+            }
+          },
+
                 child: Text('확인',
                     style: TextStyle(
                         fontSize: 16, fontWeight: FontWeight.bold)),
@@ -676,9 +748,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 녹음 완료 후 카테고리와 함께 처리하는 함수
-  void _completeRecording(String filePath) {
-    String timeLimit =
-        _timeLimitController.text.isNotEmpty ? _timeLimitController.text : '0';
+  void _completeRecording(File file, String atmosphere, String purpose, String scale, String audience, int deadline) {
     String title = _titleController.text;
 
     // 선택된 카테고리와 함께 녹음을 완료하는 처리
@@ -687,10 +757,9 @@ class _HomePageState extends State<HomePage> {
     print('목적: $_selectedPurpose');
     print('규모: $_selectedScale');
     print('청중 수준: $_selectedAudience');
-    print('제한 시간: $timeLimit');
-    print('파일 경로: $filePath');
+    print('제한 시간: $deadline');
+    print('파일: $file');
   }
-
   @override
   void initState() {
     super.initState();
@@ -741,7 +810,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 accountEmail: Text(
-                  user?.id ?? 'No ID', // 실제 사용자 ID를 여기에 표시
+                  user?.email ?? "No Email", // 실제 사용자 ID를 여기에 표시
                   style: TextStyle(
                     fontSize: 16,
                   ),
@@ -981,10 +1050,9 @@ class AudioProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> fetchAudioFiles() async {
-    final url = 'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards';
+    final url = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards';
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('accessToken'); // accessToken 가져오기
+    final token = await getAccessToken();
 
     if (token == null) {
       print('Access Token이 없습니다.');
@@ -1004,8 +1072,8 @@ class AudioProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseBody = json.decode(response.body);
-
+        final Map<String, dynamic> responseBody = jsonDecode(utf8.decode(response.bodyBytes));
+        print("스피치보드 오디오목록 데이터 불러오기 성공");
         if (responseBody.containsKey('data')) {
           List<dynamic> audioData = responseBody['data']; // 리스트 가져오기
           _audioList = audioData.map((item) => Audio.fromJson(item)).toList();
@@ -1026,7 +1094,7 @@ class AudioProvider with ChangeNotifier {
 
 class Audio {
   final int id;
-  final String userId;
+  final int userId;
   final String title;
   final String createdAt;
 
@@ -1095,18 +1163,19 @@ class _FeedbackPageState extends State<FeedbackPage> {
   // 변환된 텍스트와 피드백 가져오기
   Future<void> fetchTextAndFeedback(int speechBoardId) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? accessToken = prefs.getString('accessToken'); // accessToken 가져오기
+      final accessToken = await getAccessToken();
+      final dio = Dio();
       final response = await http.get(
         Uri.parse(
-            "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
+            "https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
         },
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body); //텍스트
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
 
         setState(() {
           originalStt = data['data']['originalStt'] ?? "";
@@ -1116,7 +1185,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
           isLoading = false;
         });
       } else {
-        print("데이터 가져오기 실패");
+        print("스피치 보드 데이터 가져오기 실패");
         setState(() => isLoading = false);
       }
     } catch (e) {
@@ -1128,18 +1197,25 @@ class _FeedbackPageState extends State<FeedbackPage> {
   // 오디오 재생
   Future<void> playAudio(int speechBoardId) async {
     try {
+      final accessToken = await getAccessToken();
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
-        Uri.parse("https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/$speechBoardId/record"), // 실제 record 데이터를 받아오는 URL로 변경
+        Uri.parse(
+            "https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/record"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
+        },
       );
 
       if (response.statusCode == 200) {
+        print("스피치 보드 오디오 데이터 받기 완료");
         final data = json.decode(response.body);
-        String audioPath = data['record']; // 백엔드에서 반환하는 오디오 경로를 받음
-
+        final audioPath = data['data']; // 백엔드에서 반환하는 오디오 경로를 받음
+        String audioRecord = audioPath['record'];
         // audioPlayer에 오디오 경로 설정
         await audioPlayer.stop();
-        await audioPlayer.setSourceUrl(audioPath);
+        await audioPlayer.setSourceUrl(audioRecord);
         await audioPlayer.resume();
 
         setState(() {
@@ -1428,8 +1504,8 @@ class CoachingPlanPage extends StatefulWidget {
 }
 
 class _CoachingPlanPage extends State<CoachingPlanPage> {
-  List<Map<String, dynamic>> topics = [];
-  List<String> topicList = [];
+  List<Map<String, dynamic>> fetchData = [];
+  List<Map<String, dynamic>> topicList = [];
 
   @override
   void initState() {
@@ -1438,12 +1514,19 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
   }
 
   Future<void> fetchTopics() async {
-    final response = await http.get(Uri.parse(
-        'https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings'));
+    final accessToken = await getAccessToken();
+    final response = await http.get(
+      Uri.parse(
+          "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
+      },
+    );
     if (response.statusCode == 200) {
-      final jsonResponse = json.decode(response.body);
+      final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
-        topics = List<Map<String, dynamic>>.from(jsonResponse['data'][0]['topics']);
+        fetchData = List<Map<String, dynamic>>.from(jsonResponse['data']);
       });
     } else {
       throw Exception('Failed to load topics');
@@ -1480,18 +1563,18 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
             ),
             SizedBox(height: 10),
             Expanded(
-              child: topics.isEmpty
+              child: fetchData.isEmpty
                   ? Center(child: CircularProgressIndicator())
                   : ListView.builder(
-                itemCount: topics.length,
+                itemCount: fetchData.length,
                 itemBuilder: (context, index) {
-                  // 각 topic 문자열을 공백을 기준으로 분할
-                  topicList = topics[index]['topic'].split(' ');
+                  // 각 speechBoardId에 대한 topic 데이터를 추출
+                  topicList = List<Map<String, dynamic>>.from(fetchData[index]['topics']);
 
                   return GestureDetector(
                     onTap: () {
-                      int selectedTopicId = topics[index]['topicId'];
-                      _navigateToRecording(selectedTopicId); // topicId를 전달
+                      int selectedTopicId = topicList[0]['topicId']; // topicId를 선택
+                      _navigateToRecording(selectedTopicId); // topicId 전달
                     },
                     child: Card(
                       shape: RoundedRectangleBorder(
@@ -1523,7 +1606,7 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  topic,
+                                  topic['topic'],  // 'topic' 값을 가져와서 출력
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -1635,13 +1718,17 @@ class _RecordingPageState extends State<RecordingPage> {
     });
 
     if (path != null) {
+      // File 객체 생성
+      final recordedFile = File(path);
+
       // 파일 로컬 저장
       String savedFilePath = await saveRecordingLocally(path);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('녹음 저장 완료: $savedFilePath')),
       );
-      // 다이얼로그 표시
-      _showCompletionDialog(savedFilePath);
+
+      // 다이얼로그 표시 (File 객체 전달)
+      _showCompletionDialog(recordedFile);
     }
   }
 
@@ -1658,10 +1745,8 @@ class _RecordingPageState extends State<RecordingPage> {
           newDir.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.mp4'));
       await audioFile.copy(newFile.path);
 
-      // SharedPreferences에서 jwtToken 가져오기
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? jwtToken = prefs.getString('jwtToken');
-      if (jwtToken == null) {
+      final token = await getAccessToken();
+      if (token == null) {
         return 'JWT Token is missing';
       }
 
@@ -1682,13 +1767,13 @@ class _RecordingPageState extends State<RecordingPage> {
   Map<String, String> koreanToEnglish = {
     "공식적": "FORMAL",
     "비공식적": "INFORMAL",
-    "정보전달": "INFORMATIVE",
+    "정보 전달": "INFORMATIVE",
     "보고": "REPORTING",
     "설득": "PERSUASIVE",
     "토론": "DEBATE",
-    "소규모(~10명)": "SMALL",
-    "중규모(~50명)": "MEDIUM",
-    "대규모(50명~)": "LARGE",
+    "소규모 (~10명)": "SMALL",
+    "중규모 (~50명)": "MEDIUM",
+    "대규모 (50명 이상)": "LARGE",
     "일반 대중": "GENERAL",
     "관련 지식 보유자": "KNOWLEDGEABLE",
     "전문가": "EXPERT",
@@ -1702,7 +1787,7 @@ class _RecordingPageState extends State<RecordingPage> {
       TextEditingController(); // 제한 시간 입력
   TextEditingController _titleController = TextEditingController();
 
-  void _showCompletionDialog(String filePath) {
+  void _showCompletionDialog(File file) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1773,27 +1858,36 @@ class _RecordingPageState extends State<RecordingPage> {
                   String audienceEng =
                       koreanToEnglish[_selectedAudience] ?? _selectedAudience;
                   // uploadAudioFile 호출 시 jwtToken 전달
-                  await sendPresentationData(
-                    atmosphereEng,
-                    purposeEng,
-                    scaleEng,
-                    audienceEng,
-                    _timeLimitController.text.isNotEmpty
-                        ? int.parse(
+                  if (mounted) {
+                    await postFile(
+                        file,
+                        atmosphereEng,
+                        purposeEng,
+                        scaleEng,
+                        audienceEng,
+                        _timeLimitController.text.isNotEmpty
+                            ? int.parse(
                             _timeLimitController.text) // 🔹 String -> int 변환
-                        : 0,
-                  );
-                  setState(() => _completeRecording(filePath)); //print, gohome
-                  Navigator.pop(context);
-                  _goHomePage();
-                } else {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('모든 항목을 선택해주세요.')));
+                            : 0,
+                        _titleController.text);
+                    setState(() {
+                      // 상태 업데이트 작업
+                    });
+                    Navigator.pop(context);
+                  } else {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(
+                        SnackBar(content: Text('모든 항목을 선택해주세요.')));
+                  }
                 }
               },
-              child: Text('확인',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
+                  child: Text(
+                    '확인',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold
+                    ),
+                  ),
+                )
           ],
         );
       },
@@ -1865,32 +1959,69 @@ class _RecordingPageState extends State<RecordingPage> {
   }
 
   // 녹음 완료 후 카테고리와 함께 처리하는 함수
-  void _completeRecording(String filePath) {
-    String timeLimit =
-        _timeLimitController.text.isNotEmpty ? _timeLimitController.text : '0';
-    String title = _titleController.text;
+  postFile(File file, String atmosphere, String purpose, String scale, String audience, int deadline, String title) async {
+    final uri = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/record';
 
-    // 선택된 카테고리와 함께 녹음을 완료하는 처리
-    print('제목: $title');
-    print('분위기: $_selectedAtmosphere');
-    print('목적: $_selectedPurpose');
-    print('규모: $_selectedScale');
-    print('청중 수준: $_selectedAudience');
-    print('제한 시간: $timeLimit');
-    print('파일 경로: $filePath');
+    // SharedPreferences에서 accessToken 가져오기
+    final token = await getAccessToken();
 
-    // HomePage로 이동하면서 카테고리 정보도 전달할 수 있다면 전달
-    _goHomePage();
+    var dio = Dio();
+
+    // Authorization 헤더 추가
+    if (token != null) {
+      dio.options.headers['Authorization'] = 'Bearer $token';
+      print("토큰 전송 완료 $token");
+    } else {
+      print("토큰에 아무것도 안 담김");
+    }
+
+    // JSON 데이터 생성
+    Map<String, dynamic> metadata = {
+      "atmosphere": atmosphere,
+      "purpose": purpose,
+      "scale": scale,
+      "audience": audience,
+      "deadline": deadline
+    };
+
+    try {
+      // FormData 구성 (파일 + JSON)
+      FormData formData = FormData.fromMap({
+        "record": await MultipartFile.fromFile(
+          file.path,
+          filename: title,
+        ),
+        "request": MultipartFile.fromString(
+          jsonEncode(metadata),
+          contentType: MediaType.parse('application/json'), // JSON 타입 명시
+        ),
+      });
+
+      var response = await dio.post(
+        uri,
+        data: formData,
+      );
+
+      print("녹음 응답: ${response.data}");
+      if(response.statusCode == 200){
+        goToHomePage();
+        /*Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => goToHomePage()), // 업로드 후 이동할 페이지
+        );*/
+      }
+    } catch (eee) {
+      print("파일 업로드에서 에러: $eee");
+    }
   }
-
 // HomePage로 돌아가는 함수
-  void _goHomePage() {
-    Navigator.pushAndRemoveUntil(
+  Future <void> goToHomePage() async {
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomePage()),
-      (route) => false, // 기존의 모든 화면을 제거하고 HomePage로 이동
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1979,7 +2110,7 @@ class _minRecordingPageState extends State<minRecordingPage> {
   // 녹음 시작 및 카운트다운
   Future<void> _startRecording() async {
     final directory = await getApplicationDocumentsDirectory();
-    _filePath = p.join(directory.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.aac');
+    _filePath = p.join(directory.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a');
 
     setState(() {
       _isRecording = true;
@@ -2024,9 +2155,8 @@ class _minRecordingPageState extends State<minRecordingPage> {
   Future<void> _uploadRecording(int topicId) async {
     try {
       File file = File(_filePath);
-      final prefs = await SharedPreferences.getInstance();
-      String? accessToken = prefs.getString('accessToken');
-      if (accessToken == null) {
+      final token = await getAccessToken();
+      if (token == null) {
         // 토큰이 없으면 에러 처리
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('토큰 없음'),
@@ -2035,14 +2165,14 @@ class _minRecordingPageState extends State<minRecordingPage> {
         return;
       }
 
-      final url = Uri.parse('https://ed8b-203-232-234-11.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
+      final url = Uri.parse('https://76db-1-230-133-117.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
 
       var request = http.MultipartRequest('POST', url)
-        ..headers['Authorization'] = 'Bearer $accessToken'
+        ..headers['Authorization'] = 'Bearer $token'
         ..files.add(await http.MultipartFile.fromPath(
           'record',
           file.path,
-          contentType: MediaType('audio', 'x-m4a'), // m4a 형식 지정
+          contentType: MediaType('audio', 'mp4'), // m4a 형식 지정, x-m4a, .m4a
         ));
 
       var response = await request.send();
@@ -2314,14 +2444,14 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
   // 변환된 텍스트와 피드백 가져오기
   Future<void> fetchTextAndFeedback(int speechCoachingId) async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? accessToken = prefs.getString('accessToken'); // accessToken 가져오기
+      final token = await getAccessToken();
       final response = await http.get(
         Uri.parse(
-            "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
-        headers: {
-          'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
-        },
+            "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
+          headers: {
+            'Content-Type': 'application/json',
+            //'Accept': 'application/json',
+            'Authorization': 'Bearer $token}'}
       );
 
       if (response.statusCode == 200) {
@@ -2346,15 +2476,24 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
   // 오디오 재생
   Future<void> playAudio(int speechCoachingId) async {
     try {
+      final accessToken = await getAccessToken();
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
-        Uri.parse("https://ed8b-203-232-234-11.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"), // 실제 record 데이터를 받아오는 URL로 변경
+        Uri.parse(
+            "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
+        },
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        String audioPath = data['record']; // 백엔드에서 반환하는 오디오 경로를 받음
-
+        final audioData = data['data']; // 백엔드에서 반환하는 오디오 경로를 받음
+        String audioPath = audioData['record'];
+        if(audioPath == Null){
+          print("스피치 코칭 음성 확인 불가능");
+        }
         // audioPlayer에 오디오 경로 설정
         await audioPlayer.stop();
         await audioPlayer.setSourceUrl(audioPath);
@@ -2493,13 +2632,67 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
   }
 }
 
+/*
+Future<void> uploadDataWithFileAndMeta(String atmosphere, String purpose, String scale, String audience, int deadline) async {
+  var uri = Uri.parse(
+      "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/record");
+
+  var request = http.MultipartRequest('POST', uri);
+
+  // SharedPreferences에서 accessToken 가져오기
+  final token = await getAccessToken();
+
+  // 헤더에 accessToken 추가
+  if (token != null) {
+    request.headers['Authorization'] = 'Bearer $token';
+  } else {
+    print("토큰에 아무것도 안 담김");
+  }
+  // JSON 데이터 추가 (meta 정보)
+  request.fields['atmosphere'] = atmosphere;
+  request.fields['purpose'] = purpose;
+  request.fields['scale'] = scale;
+  request.fields['audience'] = audience;
+  request.fields['deadline'] = deadline.toString();
+
+  // 오디오 파일을 서버에 첨부 (record)
+  request.files.add(
+    await http.MultipartFile.fromPath(
+      'record', // 서버에서 요구하는 필드명
+      audioFile.path,
+      contentType: MediaType('audio', 'm4a'),
+    ),
+  );
+
+  try {
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      print('✅ 파일과 데이터 업로드 성공');
+
+      // JSON 응답 받기
+      String responseBody = await response.stream.bytesToString();
+      Map<String, dynamic> jsonResponse = json.decode(responseBody);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('파일 업로드 완료: ${jsonResponse["title"]}')),
+      );
+    } else {
+      print('파일 업로드 실패: ${response.reasonPhrase}');
+    }
+  } catch (e) {
+    print('업로드 중 오류 발생: $e');
+  }
+}
+*/
+
+/*
 //벡엔드로 메타정보 전송
 Future<void> sendPresentationData(String atmosphere, String purpose,
-    String scale, String audience, int deadline) async {
+    String scale, String audience, int deadline, ) async {
   var uri = Uri.parse(
       "https://ed8b-203-232-234-11.ngrok-free.app/api/speech-boards/record"); // JSON 데이터 전송 URL
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? accessToken = prefs.getString('accessToken');
+  final token = await getAccessToken();
 
   var body = {
     "atmosphere": atmosphere,
@@ -2512,7 +2705,7 @@ Future<void> sendPresentationData(String atmosphere, String purpose,
   var response = await http.post(
     uri,
     headers: {
-      'Authorization': 'Bearer $accessToken',
+      'Authorization': 'Bearer $token',
       "Content-Type": "application/json"
     },
     body: json.encode(body), //jsonEncode
@@ -2524,7 +2717,7 @@ Future<void> sendPresentationData(String atmosphere, String purpose,
     debugPrint("전송 실패: ${response.statusCode}");
   }
 }
-
+*/
 //백엔드에서 파일 목록 가져오기
 /*Future<List<AudioFile>> fetchAudioFiles() async {
   final response = await http.get(
@@ -2568,6 +2761,7 @@ class AudioFile {
   }
 }
 
+/*
 //오디오 재생 페이지
 class AudioPlayerPage extends StatefulWidget {
   final AudioFile audioFile;
@@ -2648,3 +2842,9 @@ class _AudioPlayerPageState extends State<AudioPlayerPage> {
     super.dispose();
   }
 }
+*/
+Future<String?> getAccessToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('accessToken');  // 저장된 accessToken 가져오기
+}
+
