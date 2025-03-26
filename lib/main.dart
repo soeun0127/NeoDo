@@ -191,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://76db-1-230-133-117.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
+            'https://1b0f-210-206-96-219.ngrok-free.app/api/users/login'), // ✅ 실제 API 주소
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -333,7 +333,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            "https://76db-1-230-133-117.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
+            "https://1b0f-210-206-96-219.ngrok-free.app/api/users/signup"), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(
             {'username': username, 'email': email, 'password': password}),
@@ -356,7 +356,7 @@ class _SignUpPageState extends State<SignUpPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'https://76db-1-230-133-117.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
+            'https://1b0f-210-206-96-219.ngrok-free.app/api/users/login'), // 실제 API 주소 사용
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'email': emailController.text,
@@ -475,7 +475,7 @@ class _HomePageState extends State<HomePage> {
     }
   }*/
   postFile(File file, String atmosphere, String purpose, String scale, String audience, int deadline, String title) async {
-    final uri = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/record';
+    final uri = 'https://1b0f-210-206-96-219.ngrok-free.app/api/speech-boards/record';
 
     // SharedPreferences에서 accessToken 가져오기
     final token = await getAccessToken();
@@ -504,11 +504,11 @@ class _HomePageState extends State<HomePage> {
       FormData formData = FormData.fromMap({
         "record": await MultipartFile.fromFile(
           file.path,
-          filename: title,
+          filename: 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a',
         ),
         "request": MultipartFile.fromString(
           jsonEncode(metadata),
-          contentType: MediaType.parse('application/json'), // JSON 타입 명시
+          contentType: MediaType.parse('application/json'),
         ),
       });
 
@@ -516,7 +516,6 @@ class _HomePageState extends State<HomePage> {
         uri,
         data: formData,
       );
-
       print("업로드 응답: ${response.data}");
     } catch (eee) {
       print("파일 업로드에서 에러: $eee");
@@ -624,57 +623,47 @@ class _HomePageState extends State<HomePage> {
             actions: <Widget>[
               TextButton(
                 onPressed: () async {
-            if (_selectedAtmosphere.isNotEmpty &&
-                _selectedPurpose.isNotEmpty &&
-                _selectedScale.isNotEmpty &&
-                _selectedAudience.isNotEmpty) {
-              String atmosphereEng = koreanToEnglish[_selectedAtmosphere] ??
-                  _selectedAtmosphere;
-              String purposeEng =
-                  koreanToEnglish[_selectedPurpose] ?? _selectedPurpose;
-              String scaleEng =
-                  koreanToEnglish[_selectedScale] ?? _selectedScale;
-              String audienceEng =
-                  koreanToEnglish[_selectedAudience] ?? _selectedAudience;
-              // uploadAudioFile 호출 시 jwtToken 전달
-              /* await uploadDataWithFileAndMeta(
+                  if (_selectedAtmosphere.isNotEmpty &&
+                      _selectedPurpose.isNotEmpty &&
+                      _selectedScale.isNotEmpty &&
+                      _selectedAudience.isNotEmpty) {
+                    String atmosphereEng = koreanToEnglish[_selectedAtmosphere] ?? _selectedAtmosphere;
+                    String purposeEng = koreanToEnglish[_selectedPurpose] ?? _selectedPurpose;
+                    String scaleEng = koreanToEnglish[_selectedScale] ?? _selectedScale;
+                    String audienceEng = koreanToEnglish[_selectedAudience] ?? _selectedAudience;
+
+                    await postFile(
+                      file,
                       atmosphereEng,
                       purposeEng,
                       scaleEng,
                       audienceEng,
                       _timeLimitController.text.isNotEmpty
-                          ? int.parse(
-                          _timeLimitController.text) // 🔹 String -> int 변환
+                          ? int.parse(_timeLimitController.text)
                           : 0,
-                      _titleController,
-                    );*/
-              if (mounted) {
-                    await postFile(
-                        file,
-                        atmosphereEng,
-                        purposeEng,
-                        scaleEng,
-                        audienceEng,
-                        _timeLimitController.text.isNotEmpty
-                            ? int.parse(
-                            _timeLimitController.text) // 🔹 String -> int 변환
-                            : 0,
-                        _titleController.text);
-                    setState(() {
-                      // 상태 업데이트 작업
-                    });
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(
-                    SnackBar(content: Text('모든 항목을 선택해주세요.')));
-              }
-            }
-          },
+                      _titleController.text,
+                    );
 
-                child: Text('확인',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                    if (mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomePage()),
+                            (Route<dynamic> route) => false, // 모든 기존 페이지 제거
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('모든 항목을 선택해주세요.')),
+                    );
+                  }
+                },
+                child: Text(
+                  '확인',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           );
@@ -957,11 +946,17 @@ class SpeechBoardPage extends StatefulWidget {
 
 class _SpeechBoardPageState extends State<SpeechBoardPage> {
   late Future<void> _fetchAudioFuture;
+
   @override
   void initState() {
     super.initState();
     final audioProvider = Provider.of<AudioProvider>(context, listen: false);
     _fetchAudioFuture = audioProvider.fetchAudioFiles(); // ID 전달
+  }
+
+  Future<void> _refreshAudioFiles() async {
+    final audioProvider = Provider.of<AudioProvider>(context, listen: false);
+    await audioProvider.fetchAudioFiles();  // 데이터 새로 고침
   }
 
   @override
@@ -985,46 +980,48 @@ class _SpeechBoardPageState extends State<SpeechBoardPage> {
             return Center(child: Text('오디오 파일이 없습니다.'));
           }
 
-          return ListView.builder(
-            itemCount: audioProvider.audioList.length,
-            itemBuilder: (context, index) {
-              final file = audioProvider.audioList[index];
+          return RefreshIndicator(
+            onRefresh: _refreshAudioFiles, // 스와이프하여 새로고침
+            child: ListView.builder(
+              itemCount: audioProvider.audioList.length,
+              itemBuilder: (context, index) {
+                final file = audioProvider.audioList[index];
 
-              return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.all(16),
+                      leading: CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.blueAccent,
+                        child: Icon(Icons.mic, color: Colors.white),
+                      ),
+                      title: Text(
+                        file.title,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      subtitle: Text(
+                        '생성 날짜: ${file.createdAt}',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FeedbackPage(speechBoardId: file.id), //id 넘김
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  elevation: 4,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Colors.blueAccent,
-                      child: Icon(Icons.mic, color: Colors.white),
-                    ),
-                    title: Text(
-                      file.title,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    subtitle: Text(
-                      '생성 날짜: ${file.createdAt}',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FeedbackPage(speechBoardId: file.id), //id 넘김
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
@@ -1042,6 +1039,7 @@ class _SpeechBoardPageState extends State<SpeechBoardPage> {
   }
 }
 
+
 class AudioProvider with ChangeNotifier {
   List<Audio> _audioList = [];
   bool _isLoading = false;
@@ -1050,7 +1048,7 @@ class AudioProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> fetchAudioFiles() async {
-    final url = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards';
+    final url = 'https://1b0f-210-206-96-219.ngrok-free.app/api/speech-boards';
 
     final token = await getAccessToken();
 
@@ -1156,8 +1154,6 @@ class _FeedbackPageState extends State<FeedbackPage> {
         position = Duration.zero;
       });
     });
-
-    playAudio(widget.speechBoardId); // 자동으로 오디오 재생
   }
 
   // 변환된 텍스트와 피드백 가져오기
@@ -1167,7 +1163,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       final dio = Dio();
       final response = await http.get(
         Uri.parse(
-            "https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
+            "https://1b0f-210-206-96-219.ngrok-free.app/api/speech-boards/$speechBoardId/feedback"),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
@@ -1201,7 +1197,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
         Uri.parse(
-            "https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/$speechBoardId/record"),
+            "https://1b0f-210-206-96-219.ngrok-free.app/api/speech-boards/$speechBoardId/record"),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
@@ -1219,7 +1215,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
         await audioPlayer.resume();
 
         setState(() {
-          isPlaying = true;
+          isPlaying = true; //true가 맞나?
         });
       } else {
         print("오디오 경로를 가져오는 데 실패했습니다.");
@@ -1237,7 +1233,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  @override
+  @override //Stack의 position을 사용해서 녹음재생바 화면아래에 고정, 스크롤
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -1250,36 +1246,31 @@ class _FeedbackPageState extends State<FeedbackPage> {
             },
             itemBuilder: (BuildContext context) {
               return [
-                PopupMenuItem(
-                  value: '제목 수정',
-                  child: Text("제목 수정"),
-                ),
-                PopupMenuItem(
-                  value: '텍스트 수정',
-                  child: Text("텍스트 수정"),
-                ),
+                PopupMenuItem(value: '제목 수정', child: Text("제목 수정")),
+                PopupMenuItem(value: '텍스트 수정', child: Text("텍스트 수정")),
               ];
             },
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: isLoading
-            ? Center(child: CircularProgressIndicator()) // 데이터 로딩 중
-            : Column(
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: isLoading
+                ? Center(child: CircularProgressIndicator()) // 데이터 로딩 중
+                : SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: 80), // 오디오 컨트롤러 공간 확보
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "점수 : $score",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  Text("점수 : $score",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 16),
-                  // 변환된 텍스트 표시
-                  Text(
-                    "변환된 텍스트",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+
+                  // 변환된 텍스트
+                  Text("변환된 텍스트",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   Container(
                     padding: EdgeInsets.all(12),
@@ -1292,11 +1283,9 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
                   SizedBox(height: 16),
 
-                  // 피드백 표시
-                  Text(
-                    "피드백",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  // 피드백
+                  Text("피드백",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
                   Container(
                     padding: EdgeInsets.all(12),
@@ -1306,49 +1295,64 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     ),
                     child: Text(conclusion, style: TextStyle(fontSize: 16)),
                   ),
+                  SizedBox(height: 16), // 수정
+                ],
+              ),
+            ),
+          ),
 
-                  SizedBox(height: 16),
-
-                  // 오디오 컨트롤러
-                  Column(
+          // 오디오 컨트롤러를 화면 하단에 고정
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Slider(
+                    min: 0,
+                    max: duration.inSeconds.toDouble(),
+                    value: position.inSeconds.toDouble(),
+                    onChanged: (value) async {
+                      final newPosition = Duration(seconds: value.toInt());
+                      await audioPlayer.seek(newPosition);
+                      setState(() => position = newPosition);
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Slider(
-                        min: 0,
-                        max: duration.inSeconds.toDouble(),
-                        value: position.inSeconds.toDouble(),
-                        onChanged: (value) async {
-                          final newPosition = Duration(seconds: value.toInt());
-                          await audioPlayer.seek(newPosition);
-                          setState(() => position = newPosition);
+                      Text(formatTime(position)),
+                      IconButton(
+                        icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                        onPressed: () async {
+                          if (isPlaying) {
+                            await audioPlayer.pause();
+                          } else {
+                            if (duration == Duration.zero) {
+                              await playAudio(widget.speechBoardId);
+                            } else {
+                              await audioPlayer.resume();
+                            }
+                          }
+                          setState(() => isPlaying = !isPlaying);
                         },
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(formatTime(position)),
-                          IconButton(
-                            icon: Icon(
-                              isPlaying ? Icons.pause : Icons.play_arrow,
-                            ),
-                            onPressed: () async {
-                              if (isPlaying) {
-                                await audioPlayer.pause();
-                              } else {
-                                await audioPlayer.resume();
-                              }
-                              setState(() => isPlaying = !isPlaying);
-                            },
-                          ),
-                          Text(formatTime(duration)),
-                        ],
-                      ),
+                      Text(formatTime(duration)),
                     ],
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
 }
 
 /*
@@ -1504,8 +1508,43 @@ class CoachingPlanPage extends StatefulWidget {
 }
 
 class _CoachingPlanPage extends State<CoachingPlanPage> {
-  List<Map<String, dynamic>> fetchData = [];
+  List fetchData = [];
   List<Map<String, dynamic>> topicList = [];
+
+  void selectedTopic(BuildContext context, List<Map<String, dynamic>> threeTopics) { //3개 토픽중 한개 선택
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+            const Text("토픽 선택", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ...threeTopics.map((topicIdAndTopic) => ListTile(
+                title: Text(topicIdAndTopic['topic']),
+                onTap: () {
+                  print(threeTopics);
+                  int? selectedCoachingId = topicIdAndTopic['speechCoachingId']; //선택한 토픽의 speechCoachingId
+                  _navigateToRecording(topicIdAndTopic['topicId'], selectedCoachingId);
+                },
+              )),
+            ],
+          ),
+        );
+      },
+    ).then((selectedTopic) {
+      if (selectedTopic != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("선택한 토픽: $selectedTopic"),
+        ));
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -1516,31 +1555,43 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
   Future<void> fetchTopics() async {
     final accessToken = await getAccessToken();
     final response = await http.get(
-      Uri.parse(
-          "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings"),
+      Uri.parse("https://1b0f-210-206-96-219.ngrok-free.app/api/speech-coachings"),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
+        'Authorization': 'Bearer $accessToken',
       },
     );
+
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(utf8.decode(response.bodyBytes));
       setState(() {
-        fetchData = List<Map<String, dynamic>>.from(jsonResponse['data']);
+        fetchData = jsonResponse['data'];  // 🔥 여기 수정!
       });
+      print(fetchData);
     } else {
       throw Exception('Failed to load topics');
     }
   }
 
   // topicId를 전달하는 함수
-  void _navigateToRecording(int selectedTopicId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => minRecordingPage(topicId: selectedTopicId),
-      ),
-    );
+  void _navigateToRecording(int selectedTopicId, int? speechCoachingId) {
+    if(speechCoachingId == null){
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => minRecordingPage(topicId: selectedTopicId),
+        ),
+      );
+    }
+    else{
+      int speechCoachingIdInt = speechCoachingId;
+      Navigator.pushReplacement(
+        context,
+          MaterialPageRoute(
+              builder: (context)=> CoachingFeedbackPage(speechCoachingId: speechCoachingIdInt),
+          ),
+      );
+    }
   }
 
   @override
@@ -1549,32 +1600,39 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
       appBar: AppBar(title: Text('스피치 코칭')),
       body: Padding(
         padding: EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '스피치 코칭',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 5),
-            Text(
-              '3분 스피치',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-            SizedBox(height: 10),
-            Expanded(
-              child: fetchData.isEmpty
-                  ? Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                itemCount: fetchData.length,
+        child: SingleChildScrollView( //스크롤
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '스피치 코칭',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 5),
+              Text(
+                '3분 스피치',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
+              SizedBox(height: 10),
+              fetchData.isEmpty
+                ? Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                  shrinkWrap: true, //추가
+                  physics: NeverScrollableScrollPhysics(), //추가 => ListView.builder와의 충돌을 막기 위함
+                  itemCount: fetchData.length,
                 itemBuilder: (context, index) {
-                  // 각 speechBoardId에 대한 topic 데이터를 추출
-                  topicList = List<Map<String, dynamic>>.from(fetchData[index]['topics']);
+                  // 각 speechBoardId에 대한 topic 데이터를 추출 (전역 topicList 사용 X)
+                  List<Map<String, dynamic>> topicList = List<Map<String, dynamic>>.from(fetchData[index]['topics']);
 
                   return GestureDetector(
                     onTap: () {
-                      int selectedTopicId = topicList[0]['topicId']; // topicId를 선택
-                      _navigateToRecording(selectedTopicId); // topicId 전달
+                      selectedTopic(context, topicList);
+                      /*int selectedTopicId = topicList.isNotEmpty ? topicList[0]['topicId'] : -1;  // 안전하게 처리
+                      int selectedCoachingId = topicList.isNotEmpty ? topicList[0]['speechCoachingId'] : -1;
+                      print(jsonEncode(topicList));
+                      _navigateToRecording(selectedTopicId, selectedCoachingId); // topicId 전달
+                      print("topicID : ${selectedTopicId}");
+                       */
                     },
                     child: Card(
                       shape: RoundedRectangleBorder(
@@ -1595,25 +1653,30 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
                               ),
                             ),
                             SizedBox(height: 10),
-                            Row(
+                            Column(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: topicList
-                                  .map((topic) => Container(
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.blueAccent.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  topic['topic'],  // 'topic' 값을 가져와서 출력
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: topicList.map((topic) => Column(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueAccent.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      topic['topic'],
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ))
-                                  .toList(),
+                                  SizedBox(height: 10),  // topic 사이 공백 추가
+                                ],
+                              )).toList(),
                             ),
                           ],
                         ),
@@ -1622,9 +1685,9 @@ class _CoachingPlanPage extends State<CoachingPlanPage> {
                   );
                 },
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        )
       ),
     );
   }
@@ -1675,8 +1738,7 @@ class _RecordingPageState extends State<RecordingPage> {
 
   Future<void> _startRecording() async {
     final directory = await getApplicationDocumentsDirectory();
-    _filePath = p.join(
-        directory.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.aac');
+    _filePath = p.join(directory.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a');
 
     setState(() {
       _isRecording = true;
@@ -1719,10 +1781,11 @@ class _RecordingPageState extends State<RecordingPage> {
 
     if (path != null) {
       // File 객체 생성
-      final recordedFile = File(path);
+      File recordedFile = File(path);
+      print("녹음 파일 경로 : ${recordedFile.path}");
 
       // 파일 로컬 저장
-      String savedFilePath = await saveRecordingLocally(path);
+      String savedFilePath = await saveRecordingLocally(path);  // 변환된 경로를 저장
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('녹음 저장 완료: $savedFilePath')),
       );
@@ -1742,7 +1805,7 @@ class _RecordingPageState extends State<RecordingPage> {
       if (!await newDir.exists()) await newDir.create(recursive: true);
 
       final newFile = File(p.join(
-          newDir.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.mp4'));
+          newDir.path, 'audio_${DateTime.now().millisecondsSinceEpoch}.m4a'));
       await audioFile.copy(newFile.path);
 
       final token = await getAccessToken();
@@ -1960,7 +2023,7 @@ class _RecordingPageState extends State<RecordingPage> {
 
   // 녹음 완료 후 카테고리와 함께 처리하는 함수
   postFile(File file, String atmosphere, String purpose, String scale, String audience, int deadline, String title) async {
-    final uri = 'https://76db-1-230-133-117.ngrok-free.app/api/speech-boards/record';
+    final uri = 'https://1b0f-210-206-96-219.ngrok-free.app/api/speech-boards/record';
 
     // SharedPreferences에서 accessToken 가져오기
     final token = await getAccessToken();
@@ -2001,7 +2064,7 @@ class _RecordingPageState extends State<RecordingPage> {
         uri,
         data: formData,
       );
-
+      print("postFile 녹음 파일 경로 : ${file.path}");
       print("녹음 응답: ${response.data}");
       if(response.statusCode == 200){
         goToHomePage();
@@ -2134,30 +2197,44 @@ class _minRecordingPageState extends State<minRecordingPage> {
   Future<void> _pauseRecording() async {
     if (_recorder!.isRecording) {
       await _recorder!.pauseRecorder();
-      setState(() => _isRecording = false);
+      _timer?.cancel();  // ⬅️ 타이머 정지!
+      setState(() {
+        _isRecording = false;
+      });
     } else if (_recorder!.isPaused) {
       await _recorder!.resumeRecorder();
-      setState(() => _isRecording = true);
+      _timer = Timer.periodic(Duration(seconds: 1), (timer) {  // ⬅️ 타이머 재개!
+        if (_remainingDuration.inSeconds > 0) {
+          setState(() {
+            _remainingDuration -= Duration(seconds: 1);
+          });
+        } else {
+          _stopRecording();
+        }
+      });
+      setState(() {
+        _isRecording = true;
+      });
     }
   }
 
-  // 녹음 정지
+  // 녹음 정지 (페이지 닫지 않음)
   Future<void> _stopRecording() async {
-    if (_recorder != null) {
+    if (_recorder != null && _recorder!.isRecording) {
       await _recorder!.stopRecorder();
+      _timer?.cancel();
+      setState(() => _isRecording = false);
     }
-    _timer?.cancel();
-    setState(() => _isRecording = false);
-    Navigator.pop(context);
   }
 
   // 업로드 함수
   Future<void> _uploadRecording(int topicId) async {
     try {
+      await _stopRecording(); // 업로드 전에 녹음 멈추기
+
       File file = File(_filePath);
       final token = await getAccessToken();
       if (token == null) {
-        // 토큰이 없으면 에러 처리
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('토큰 없음'),
           backgroundColor: Colors.red,
@@ -2165,44 +2242,48 @@ class _minRecordingPageState extends State<minRecordingPage> {
         return;
       }
 
-      final url = Uri.parse('https://76db-1-230-133-117.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
+      final url = Uri.parse('https://1b0f-210-206-96-219.ngrok-free.app/api/topics/$topicId/speech-coachings/record');
 
       var request = http.MultipartRequest('POST', url)
         ..headers['Authorization'] = 'Bearer $token'
         ..files.add(await http.MultipartFile.fromPath(
           'record',
           file.path,
-          contentType: MediaType('audio', 'mp4'), // m4a 형식 지정, x-m4a, .m4a
+          contentType: MediaType('audio', 'm4a'),
         ));
 
       var response = await request.send();
 
-      if (response.statusCode == 200) {
-        // 응답 스트림을 문자열로 변환하여 JSON 파싱
+      if (response.statusCode == 201) {
+        print("스피치 코칭 3분 녹음 파일 전송 완료");
         String responseBody = await response.stream.bytesToString();
         final Map<String, dynamic> responseJson = json.decode(responseBody);
 
-        // JSON에서 'speechCoachingId'를 추출하고 정수형으로 변환
-        int speechCoachingId = responseJson['speechCoachingId'];
+        Map<String, dynamic> data = responseJson['data'];
+        int speechCoachingId = data['speechCoachingId'];
+        print("스피치코칭 아이디 : $speechCoachingId");
 
-        // 업로드 후 페이지 이동
+        // 업로드 성공 → CoachingFeedbackPage로 이동
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => CoachingFeedbackPage(speechCoachingId: speechCoachingId)), // 업로드 후 이동할 페이지
+          MaterialPageRoute(builder: (context) => CoachingFeedbackPage(speechCoachingId: speechCoachingId)),
         );
       } else {
+        print('코칭 업로드 실패: ${response.statusCode}');
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('코칭 업로드 실패'),
+          content: Text('코칭 업로드 실패: ${response.statusCode}'),
           backgroundColor: Colors.red,
         ));
       }
     } catch (e) {
+      print('코칭 업로드 중 오류: $e');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('코칭 업로드중 오류: $e'),
+        content: Text('코칭 업로드 중 오류: $e'),
         backgroundColor: Colors.red,
       ));
     }
   }
+
 
   // 시간을 "MM:SS" 형식으로 포맷
   String _formatDuration(Duration duration) {
@@ -2227,8 +2308,7 @@ class _minRecordingPageState extends State<minRecordingPage> {
             ),
           ),
           Padding(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 100.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 100.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -2244,13 +2324,12 @@ class _minRecordingPageState extends State<minRecordingPage> {
                   child: CircleAvatar(
                     radius: 36,
                     backgroundColor: Colors.red,
-                    child: Icon(_isRecording ? Icons.pause : Icons.mic,
-                        color: Colors.white, size: 36),
+                    child: Icon(_isRecording ? Icons.pause : Icons.mic, color: Colors.white, size: 36),
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await _uploadRecording(widget.topicId); // 업로드 함수 호출
+                    await _uploadRecording(widget.topicId);
                   },
                   child: Text('완료'),
                 ),
@@ -2262,6 +2341,7 @@ class _minRecordingPageState extends State<minRecordingPage> {
     );
   }
 }
+
 /*
 class minRecordingPage extends StatefulWidget {
   final String topicId;
@@ -2437,8 +2517,6 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
         position = Duration.zero;
       });
     });
-
-    playAudio(widget.speechCoachingId); // 자동으로 오디오 재생
   }
 
   // 변환된 텍스트와 피드백 가져오기
@@ -2447,7 +2525,7 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
       final token = await getAccessToken();
       final response = await http.get(
         Uri.parse(
-            "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
+            "https://1b0f-210-206-96-219.ngrok-free.app/api/speech-coachings/$speechCoachingId/feedback"),
           headers: {
             'Content-Type': 'application/json',
             //'Accept': 'application/json',
@@ -2480,7 +2558,7 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
       // 백엔드에서 GET 요청으로 record 데이터 받아오기
       final response = await http.get(
         Uri.parse(
-            "https://76db-1-230-133-117.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"),
+            "https://1b0f-210-206-96-219.ngrok-free.app/api/speech-coachings/$speechCoachingId/record"),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken', // GET 요청에 Authorization 헤더 추가
@@ -2531,105 +2609,116 @@ class _CoachingFeedbackPageState extends State<CoachingFeedbackPage> {
             },
             itemBuilder: (BuildContext context) {
               return [
-                PopupMenuItem(
-                  value: '제목 수정',
-                  child: Text("제목 수정"),
-                ),
-                PopupMenuItem(
-                  value: '텍스트 수정',
-                  child: Text("텍스트 수정"),
-                ),
+                PopupMenuItem(value: '제목 수정', child: Text("제목 수정")),
+                PopupMenuItem(value: '텍스트 수정', child: Text("텍스트 수정")),
               ];
             },
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: isLoading
-            ? Center(child: CircularProgressIndicator()) // 데이터 로딩 중
-            : Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "점수 : $score",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            // 변환된 텍스트 표시
-            Text(
-              "변환된 텍스트",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(originalStt, style: TextStyle(fontSize: 16)),
-            ),
+      body: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: 80), // 오디오 컨트롤러 공간 확보
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "점수 : $score",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
 
-            SizedBox(height: 16),
-
-            // 피드백 표시
-            Text(
-              "피드백",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(conclusion, style: TextStyle(fontSize: 16)),
-            ),
-
-            SizedBox(height: 16),
-
-            // 오디오 컨트롤러
-            Column(
-              children: [
-                Slider(
-                  min: 0,
-                  max: duration.inSeconds.toDouble(),
-                  value: position.inSeconds.toDouble(),
-                  onChanged: (value) async {
-                    final newPosition = Duration(seconds: value.toInt());
-                    await audioPlayer.seek(newPosition);
-                    setState(() => position = newPosition);
-                  },
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(formatTime(position)),
-                    IconButton(
-                      icon: Icon(
-                        isPlaying ? Icons.pause : Icons.play_arrow,
-                      ),
-                      onPressed: () async {
-                        if (isPlaying) {
-                          await audioPlayer.pause();
-                        } else {
-                          await audioPlayer.resume();
-                        }
-                        setState(() => isPlaying = !isPlaying);
-                      },
+                  // 변환된 텍스트 표시
+                  Text(
+                    "변환된 텍스트",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    Text(formatTime(duration)),
-                  ],
-                ),
-              ],
+                    child: Text(originalStt, style: TextStyle(fontSize: 16)),
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // 피드백 표시
+                  Text(
+                    "피드백",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(conclusion, style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // 오디오 컨트롤러를 화면 하단에 고정
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Slider(
+                    min: 0,
+                    max: duration.inSeconds.toDouble(),
+                    value: position.inSeconds.toDouble(),
+                    onChanged: (value) async {
+                      final newPosition = Duration(seconds: value.toInt());
+                      await audioPlayer.seek(newPosition);
+                      setState(() => position = newPosition);
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(formatTime(position)),
+                      IconButton(
+                        icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                        onPressed: () async {
+                          if (isPlaying) {
+                            await audioPlayer.pause();
+                          } else {
+                            if (duration == Duration.zero) {
+                              await playAudio(widget.speechCoachingId);
+                            } else {
+                              await audioPlayer.resume();
+                            }
+                          }
+                          setState(() => isPlaying = !isPlaying);
+                        },
+                      ),
+                      Text(formatTime(duration)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
 }
 
 /*
@@ -2847,4 +2936,5 @@ Future<String?> getAccessToken() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('accessToken');  // 저장된 accessToken 가져오기
 }
+
 

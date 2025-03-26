@@ -5,7 +5,7 @@ import 'user.dart'; // 위에서 정의한 User 클래스를 import
 class ApiService {
   Future<User?> getUserInfo() async {
     final url = Uri.parse(
-        'https://76db-1-230-133-117.ngrok-free.app/api/users/my-page'); // 실제 API 엔드포인트로 변경
+        'https://8241-1-230-133-117.ngrok-free.app/api/users/my-page'); // 실제 API 엔드포인트로 변경
     final response = await http.get(url);
 
     // 상태 코드가 200인지 확인
